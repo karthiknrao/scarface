@@ -67,6 +67,9 @@ print 'Spatital ContrativeNorm'
 normalization = nn.SpatialContrastiveNormalization(1, neighborhood, 1):float()
 for c in ipairs(channels) do
    for i = 1,trainData:size() do
+      if i % 500 == 0 then
+	 print ( i )
+      end
       trainData.data[{ i,{c},{},{} }] = normalization:forward(trainData.data[{ i,{c},{},{} }])
    end
    for i = 1,testData:size() do
@@ -85,9 +88,9 @@ model:add(nn.SpatialMaxPooling(2,2,2,2))
 model:add(nn.SpatialConvolution(2*chn, 2*chn, 3, 3))
 model:add(nn.ReLU())
 model:add(nn.SpatialMaxPooling(2,2,2,2))
---layer3
-model:add(nn.Reshape(2*chn*3*3))
-model:add(nn.Linear(2*chn*3*3, 100))
+-- layer3
+model:add(nn.Reshape(2*chn*6*6))
+model:add(nn.Linear(2*chn*6*6, 100))
 model:add(nn.ReLU())
 model:add(nn.Linear(100,n_out))
 
@@ -100,6 +103,15 @@ parameters,gradParameters = model:getParameters()
 classes = {'1','2','3','4','5','6','7','8','9','0'}
 
 confusion = optim.ConfusionMatrix(classes)
+
+-- train method
+goptimState = {
+      learningRate = 0.01,
+      weightDecay = 0.01,
+      momentum = 0.1,
+      learningRateDecay = 1e-7
+   }
+optimMethod = optim.sgd
 
 --- training
 
@@ -127,6 +139,9 @@ function train()
       end
 
       local feval = function(x)
+	 if x ~= parameters then
+	    parameters:copy(x)
+	 end
 	 gradParameters:zero()
 	 local f = 0
 	 for i = 1, #inputs do
