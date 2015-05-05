@@ -2,6 +2,7 @@ require 'torch'
 require 'image'
 require 'nn'
 require 'optim'
+require 'xlua'
 
 n_out = 10
 chn = 1
@@ -10,22 +11,22 @@ height = 32
 batchSize = 100
 train_file = 'train_32x32.t7'
 test_file = 'test_32x32.t7'
-trsize = 73257
-tesize = 26032
+trsize = 60000
+tesize = 10000
 
 print 'Loading Datasets ... '
 
 loaded = torch.load(train_file,'ascii')
 trainData = {
    data = loaded.data:transpose(3,4),
-   labels = loaded.labels[1],
+   labels = loaded.labels,
    size = function() return trsize end
 }
 
 loaded = torch.load(test_file,'ascii')
 testData = {
    data = loaded.data:transpose(3,4),
-   labels = loaded.labels[1],
+   labels = loaded.labels,
    size = function() return tesize end
 }
 
@@ -34,14 +35,7 @@ testData.data = testData.data:float()
 
 print 'Normalize Data ... '
 
-for i = 1,trainData:size() do
-   trainData.data[i] = image.rgb2yuv(trainData.data[i])
-end
-for i = 1,testData:size() do
-   testData.data[i] = image.rgb2yuv(testData.data[i])
-end
-
-channels = {'y','u','v'}
+channels = {'g'}
 
 print 'Normalize each channel globally'
 mean = {}
@@ -67,9 +61,9 @@ print 'Spatital ContrativeNorm'
 normalization = nn.SpatialContrastiveNormalization(1, neighborhood, 1):float()
 for c in ipairs(channels) do
    for i = 1,trainData:size() do
-      if i % 500 == 0 then
-	 print ( i )
-      end
+--      if i % 500 == 0 then
+--	 print ( i )
+--    end
       trainData.data[{ i,{c},{},{} }] = normalization:forward(trainData.data[{ i,{c},{},{} }])
    end
    for i = 1,testData:size() do
@@ -81,16 +75,16 @@ print 'Create Model ...'
 -- start model
 model = nn.Sequential()
 -- layer1
-model:add(nn.SpatialConvolution(chn, 64, 5, 5))
+model:add(nn.SpatialConvolution(chn,4, 5, 5))
 model:add(nn.ReLU())
 model:add(nn.SpatialMaxPooling(2,2,2,2))
 -- layer2
-model:add(nn.SpatialConvolution(64, 64, 3, 3))
+model:add(nn.SpatialConvolution(4, 8, 5, 5))
 model:add(nn.ReLU())
 model:add(nn.SpatialMaxPooling(2,2,2,2))
 -- layer3
-model:add(nn.Reshape(64*6*6))
-model:add(nn.Linear(64*6*6, 100))
+model:add(nn.Reshape(8*5*5))
+model:add(nn.Linear(8*5*5, 100))
 model:add(nn.ReLU())
 model:add(nn.Linear(100,n_out))
 
@@ -109,10 +103,10 @@ confusion = optim.ConfusionMatrix(classes)
 
 -- train method
 optimState = {
-      learningRate = 0.001,
-      weightDecay = 0,
-      momentum = 0,
-      learningRateDecay = 1e-7
+      learningRate = 0.01,
+      weightDecay = 0.1,
+      momentum = 0.1,
+      learningRateDecay = 1e-5
    }
 optimMethod = optim.sgd
 
@@ -129,6 +123,7 @@ function train()
       -- xlua.progress(t, trainData:size())
 
       -- create mini batch
+      xlua.progress(t, trainData:size())
       local inputs = {}
       local targets = {}
       for i = t,math.min(t+batchSize-1,trainData:size()) do
@@ -165,7 +160,11 @@ function train()
    end
    --print( 'mean class accuracy (train set)' .. confusion.totalValid * 100 )
    trainLogger:add{['% mean class accuracy (train set)'] = confusion.totalValid * 100}
+   print 'Train Confusion'
    print(confusion)
+   print 'Train Accuracy'
+   
+   print( confusion.totalValid * 100 )
    confusion:zero()
    epoch = epoch + 1
 end
@@ -185,8 +184,10 @@ function test()
       confusion:add(pred, target)
    end
    testLogger:add{['% mean class accuracy (test set)'] = confusion.totalValid * 100}
-   print( 'mean class accuracy (test set)' .. confusion.totalValid * 100 )
-   confusion:zero()
+   print 'Test Confusion'
+   print(confusion)
+   print 'Test Accuracy'
+   print( confusion.totalValid * 100 )
 end
 
 print 'Start Training ...'
