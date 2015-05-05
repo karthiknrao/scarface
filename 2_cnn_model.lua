@@ -4,7 +4,7 @@ require 'nn'
 require 'optim'
 
 n_out = 10
-chn = 3
+chn = 1
 width = 32
 height = 32
 batchSize = 100
@@ -17,15 +17,15 @@ print 'Loading Datasets ... '
 
 loaded = torch.load(train_file,'ascii')
 trainData = {
-   data = loaded.X:transpose(3,4),
-   labels = loaded.y[1],
+   data = loaded.data:transpose(3,4),
+   labels = loaded.labels[1],
    size = function() return trsize end
 }
 
 loaded = torch.load(test_file,'ascii')
 testData = {
-   data = loaded.X:transpose(3,4),
-   labels = loaded.y[1],
+   data = loaded.data:transpose(3,4),
+   labels = loaded.labels[1],
    size = function() return tesize end
 }
 
@@ -81,16 +81,16 @@ print 'Create Model ...'
 -- start model
 model = nn.Sequential()
 -- layer1
-model:add(nn.SpatialConvolution(chn, 2*chn, 5, 5))
+model:add(nn.SpatialConvolution(chn, 64, 5, 5))
 model:add(nn.ReLU())
 model:add(nn.SpatialMaxPooling(2,2,2,2))
 -- layer2
-model:add(nn.SpatialConvolution(2*chn, 2*chn, 3, 3))
+model:add(nn.SpatialConvolution(64, 64, 3, 3))
 model:add(nn.ReLU())
 model:add(nn.SpatialMaxPooling(2,2,2,2))
 -- layer3
-model:add(nn.Reshape(2*chn*6*6))
-model:add(nn.Linear(2*chn*6*6, 100))
+model:add(nn.Reshape(64*6*6))
+model:add(nn.Linear(64*6*6, 100))
 model:add(nn.ReLU())
 model:add(nn.Linear(100,n_out))
 
@@ -102,13 +102,16 @@ parameters,gradParameters = model:getParameters()
 
 classes = {'1','2','3','4','5','6','7','8','9','0'}
 
+trainLogger = optim.Logger(paths.concat('results', 'train.log'))
+testLogger = optim.Logger(paths.concat('results', 'test.log'))
+
 confusion = optim.ConfusionMatrix(classes)
 
 -- train method
-goptimState = {
-      learningRate = 0.01,
-      weightDecay = 0.01,
-      momentum = 0.1,
+optimState = {
+      learningRate = 0.001,
+      weightDecay = 0,
+      momentum = 0,
       learningRateDecay = 1e-7
    }
 optimMethod = optim.sgd
@@ -117,6 +120,7 @@ optimMethod = optim.sgd
 
 function train()
    epoch = epoch or 1
+   print ( 'Epoch Current => ' .. epoch )
    model:training()
    shuffle = torch.randperm(trsize)
    
@@ -153,14 +157,16 @@ function train()
 	    model:backward(inputs[i], df_do)
 	    confusion:add(output, targets[i])
 	 end
-	 
 	 gradParameters:div(#inputs)
 	 f = f/#inputs
 	 return f, gradParameters
       end
       optimMethod(feval, parameters, optimState)
-      
    end
+   --print( 'mean class accuracy (train set)' .. confusion.totalValid * 100 )
+   trainLogger:add{['% mean class accuracy (train set)'] = confusion.totalValid * 100}
+   print(confusion)
+   confusion:zero()
    epoch = epoch + 1
 end
 
@@ -174,13 +180,17 @@ function test()
 
       -- test sample
       local pred = model:forward(input)
+      --print ( pred  )
+      --print ( target )
+      confusion:add(pred, target)
    end
+   testLogger:add{['% mean class accuracy (test set)'] = confusion.totalValid * 100}
+   print( 'mean class accuracy (test set)' .. confusion.totalValid * 100 )
+   confusion:zero()
 end
 
 print 'Start Training ...'
-while true do
+for counter = 1, 100 do
    train()
    test()
 end
-
-
