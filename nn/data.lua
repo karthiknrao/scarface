@@ -3,7 +3,7 @@ require 'image'
 require 'math'
 require 'nn'
 
-dataset = '/home/indix/Documents/data/cifar10/cifar-10-batches-py/'
+dataset = ''
 classes = {}
 chn = 3
 width = 32
