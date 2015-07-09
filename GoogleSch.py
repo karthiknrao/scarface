@@ -1,5 +1,6 @@
 from bs4 import BeautifulSoup
 import urllib2
+import sys
 
 class GoogleSch():
     base_url = 'http://scholar.google.com/scholar?q=%s&hl=en'
@@ -29,5 +30,5 @@ class GoogleSch():
             print title, link
 
 if __name__ == '__main__':
-    gsch = GoogleSch()
+    gsch = GoogleSch( ' '.join(sys.argv[1:]) )
     gsch.parse()
