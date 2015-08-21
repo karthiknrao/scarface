@@ -1,4 +1,4 @@
-#from pyvirtualdisplay import Display
+from pyvirtualdisplay import Display
 from selenium import webdriver
 from bs4 import BeautifulSoup
 import time, os, sys
@@ -7,8 +7,8 @@ import pdb
 
 class BingImages():
     def __init__( self ):
-        #self.display = Display(visible=0, size=(800, 600))
-        #self.display.start()
+        self.display = Display(visible=0, size=(800, 600))
+        self.display.start()
         self.base_url = 'https://www.bing.com/images/search?q=%s'
         self.path_to_chromedriver = './chromedriver'
         self.browser = webdriver.Chrome(executable_path = self.path_to_chromedriver)
