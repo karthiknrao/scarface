@@ -52,6 +52,7 @@ def binary_crossentropy(y_true, y_pred):
 def siamese_euclidean(y_true, y_pred):
     a = y_pred[0::2]
     b = y_pred[1::2]
+    """
     diff = ((a - b) ** 2).sum(axis=1, keepdims=True)
     y_true = y_true[0::2]
     diffs = T.scalar('diffs',dtype='float32')
@@ -61,6 +62,8 @@ def siamese_euclidean(y_true, y_pred):
         else:
             diffs += ( T.maximum(1. - (a[i]-b[i])**2, 0) ).sum()
     return diffs/100
+    """
+    return ((((a-b)**2) - y_true)**2).sum()
 
 # aliases
 mse = MSE = mean_squared_error
