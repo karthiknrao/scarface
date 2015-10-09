@@ -1,1 +1,10 @@
+# OS enviromment
+Ubuntu 14.04 LTS
 
+# libraries needed
+sox : sudo apt-get install sox
+keras : sudo pip install keras
+
+# hackathon project contents
+model file
+script to run the model
