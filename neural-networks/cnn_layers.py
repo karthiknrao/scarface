@@ -6,7 +6,7 @@ from theano.tensor.signal import downsample
 
 class ConvLayer():
     def __init__(self,insize,outsize,
-                 filterx,filtery,X):
+                 filterx,filtery):
         self.W = theano.shared(
             )
         self.b = theano.shared(
@@ -15,15 +15,21 @@ class ConvLayer():
             X,self.W,
             border_mode='valid',
         )
-        
+        self.params = [ self.W, self.b ]
+
+    def __call__(self, X):
         act = lambda x : x if x >= 0 else 0
-        self.output = act( convout + self.b.dimshuffle('x',0,'x','x') )
+        return act( convout + self.b.dimshuffle('x',0,'x','x') )
         
 class PoolLayer():
     def __init__(self,poolx,pooly,X):
-        self.output = downsample.max_pool_2d(input,
-                                             (poolx,pooly),
-                                             ignore_border=True)
+        self.px = poolx
+        self.py = pooly
+    
+    def __call__(self):
+        return downsample.max_pool_2d(input,
+                                      (px,py),
+                                      ignore_border=True)
         
 class FC():
     def __init__(self,insize,outsize,X):
@@ -31,6 +37,9 @@ class FC():
             )
         self.b = theano.shared(
             )
-
+        self.param = [ self.W, self.b ]
+        
+    def __call__(self):
         act = lambda x : x if x >= 0 else 0
-        output = act( T.dot(X,self.W) + self.b )
+        return act( T.dot(X,self.W) + self.b )
+
