@@ -1,6 +1,7 @@
 import numpy as np
 import theano
 import theano.tensor as T
+import os
 
 def single_layer_lstm(n_in,n_out):
     Wxb = theano.shared(
@@ -22,9 +23,6 @@ def single_layer_lstm(n_in,n_out):
     bi = theano.shared(
         np.random.randn(n_out)
         )
-    #ci = theano.shared(
-    #    np.random.random((n_out,))
-    #    )
 
     Wxf = theano.shared(
         np.random.randn(n_in,n_out),
@@ -35,9 +33,6 @@ def single_layer_lstm(n_in,n_out):
     bf = theano.shared(
         np.random.randn(n_out)
         )
-    #cf = theano.shared(
-    #    np.random.random((n_out,))
-    #    )
 
     Wxo = theano.shared(
         np.random.randn(n_in,n_out),
@@ -48,14 +43,6 @@ def single_layer_lstm(n_in,n_out):
     bo = theano.shared(
         np.random.randn(n_out)
         )
-
-    #co = theano.shared(
-    #    np.random.random((n_out,))
-    #    )
-
-    #c = theano.shared(
-    #    np.random.random((n_out,))
-    #    )
 
     Wo = theano.shared(
         np.random.randn(n_out,n_out)
@@ -85,7 +72,7 @@ def single_layer_lstm(n_in,n_out):
             T.dot(x,Wxo) + T.dot(htm1,Who) + bo
             )
         h = o*T.tanh(c)
-        y = T.tanh(T.dot(h,Wo) + bout)
+        y = T.dot(h,Wo) + bout
         return [h, c, y]
     
     X = T.matrix()
@@ -120,34 +107,48 @@ def single_layer_lstm(n_in,n_out):
     funch = theano.function( [X,h0,c0], c )
     funcy = theano.function([X,h0,c0],y)
 
-    oloss = loss(yout,yt)# + L2
-
+    oloss = loss(yout,yt) + L2
+    cost = loss(yout,yt)
     gparams = []
     for param in params:
         gparams.append(T.grad(oloss, param))
 
     # zip just concatenate two lists
-    updates = {}
-
+    updates_t = {}
+    
     for param in params:
-        updates[param] = theano.shared(
+        updates_t[param] = theano.shared(
             value = np.zeros(
                 param.get_value(
                     borrow = True).shape,
                 dtype = theano.config.floatX),
             name = 'updates')
-    
+
+    updates = {}
     for param, gparam in zip(params, gparams):
-        weight_update = updates[param]
+        weight_update = updates_t[param]
         upd = mom * weight_update - lr * gparam
         updates[weight_update] = upd
         updates[param] = param + upd
-    
+
+    """
+    for param, gparam in zip(params, gparams):
+        #mparam = theano.shared(param.get_value()*0.)
+        upd = -lr*gparam# + mom*mparam# - 0.01*param# + 
+        #updates[mparam] = upd
+        updates[param] = param + upd
+    """
+    """            
+        weight_update = updates[param]
+        upd = -lr * gparam - 0.01*param
+        updates[weight_update] = upd
+        updates[param] = param + upd
+    """
     
     #gWxo = T.grad(oloss,Wxo)
     #fgradwxo = theano.function( [X,h0,c0,yt], gWxo )
     trainer = theano.function( [X,h0,c0,yt,lr,mom],
-                               [oloss],
+                               [cost],
                                updates=updates )
     return funcy,trainer
 """
@@ -160,7 +161,10 @@ print funcy(x,h,c)
 print fgradwxo(x,h,c,yt)
 """
 
-dataset = open('pg1661.txt').read().lower()
+if not os.path.exists( 'pg1661.txt' ):
+    os.system( 'wget -O pg1661.txt http://www.gutenberg.org/ebooks/1661.txt.utf-8' )
+
+dataset = open('pg1661.txt').read().lower()[20000:21010]
 #dataset = ('ABCDEFGHIJKLMNOPQRSTUVWXYZ' + 'abcdefghijklmnopqrstuvwxyz' + ' !"#$%&\'()*+,-./0123456789:;<=>?@')*1000
 letters = list(set(dataset))
 
@@ -173,6 +177,7 @@ h = np.zeros((len(letters),))
 c = np.zeros((len(letters),))
 
 lrx = 0.001
+mm = 0.9
 while True:
     for i in range(len(data)-10):
         xt = data[i:i+10]
@@ -182,12 +187,15 @@ while True:
         for j,x in enumerate(xt):
             X[j][letters.index(x)] = 1
         yt = np.array([ letters.index(x) for x in data[i+1:i+11] ], dtype=np.int32)
-        loss = trainer(X,h,c,yt,lrx,0.9)
-        #if loss[0] < 4.1:
-        #    lrx = 0.0001
+        loss = trainer(X,h,c,yt,lrx,0.99)
+        if loss[0] < 2.5:
+            lrx = 0.0001
         #lrx = lrx - 0.000001
         if i % 100 == 0:
+            #lrx -= 0.00001
+            #if mm < 0.98:
+            #    mm += 0.001
             print loss
             out = srnn_y(X,h,c)
             outl = [ letters[np.argmax(x)] for x in out ]
-            print list(xt),outl
+            print '| ' +xt+' |\n' ,'| '+''.join(outl)+' |\n'

@@ -25,7 +25,7 @@ def single_layer_rnn(n_in,n_out):
     def step(x,htm1,Wx,Wh,b,Wo,bo):
         h = T.dot(x,Wx) + T.dot(htm1,Wh) + b
         o = T.nnet.sigmoid(h)
-        y = T.nnet.sigmoid(T.dot(o,Wo) + bo)
+        y = T.dot(o,Wo) + bo
         return o, y
 
     X = T.matrix()
@@ -57,18 +57,19 @@ def single_layer_rnn(n_in,n_out):
         gparams.append(T.grad(oloss, param))
 
     # zip just concatenate two lists
-    updates = {}
+    updates_t = {}
 
     for param in params:
-        updates[param] = theano.shared(
+        updates_t[param] = theano.shared(
             value = np.zeros(
                 param.get_value(
                     borrow = True).shape,
                 dtype = theano.config.floatX),
             name = 'updates')
-    
+
+    updates = {}
     for param, gparam in zip(params, gparams):
-        weight_update = updates[param]
+        weight_update = updates_t[param]
         upd = mom * weight_update - lr * gparam
         updates[weight_update] = upd
         updates[param] = param + upd
@@ -101,7 +102,8 @@ data = dataset
 srnn_y, srnn_h, cost, trainer, params = single_layer_rnn(len(letters),len(letters))
 
 y =  np.zeros((2*len(letters),))
-lrx = 0.0001
+lr = 0.0001
+mom = 0.8
 while True:
     for i in range(len(data)-20):
         xt = data[i:i+20]
@@ -111,8 +113,12 @@ while True:
         for j,x in enumerate(xt):
             X[j][letters.index(x)] = 1
         yt = np.array([ letters.index(x) for x in data[i+1:i+21] ], dtype=np.int32)
-        loss = trainer(X,y,yt,0.00001,0.99)
-        lrx = lrx - 0.000001
+        loss = trainer(X,y,yt,lr,mom)
+        if loss[0] < 13.0:
+            mom = 0.99
+        if loss[0] < 5.5:
+            lr = 0.00001
+#        lrx = lrx - 0.000001
         if i % 1000 == 0:
             print loss
             out = srnn_y(X,y)
