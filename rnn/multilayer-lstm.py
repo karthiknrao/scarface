@@ -6,61 +6,105 @@ import os
 class LSTM():
     def __init__(self,n_in,n_out):
         self.Wxb = theano.shared(
-            np.random.randn(n_in,n_out),
-        )
+            #np.random.randn(n_in,n_out),
+            np.random.uniform(
+                size = (n_in, n_out),
+                low = -.01, high = .01)
+            )
         self.Whb = theano.shared(
-            np.random.randn(n_out,n_out),
-        )
+            #np.random.randn(n_out,n_out),
+            np.random.uniform(
+                size = (n_out, n_out),
+                low = -.01, high = .01)
+            )
         self.bb = theano.shared(
-            np.random.randn(n_out)
-        )
+            #np.random.randn(n_out)
+            np.random.uniform(
+                size = (n_out,),
+                low = -.01, high = .01)
+            )
 
         self.Wxi = theano.shared(
-            np.random.randn(n_in,n_out),
+            #np.random.randn(n_in,n_out),
+            np.random.uniform(
+                size = (n_in, n_out),
+                low = -.01, high = .01)
         )
         self.Whi = theano.shared(
-            np.random.randn(n_out,n_out),
+            #np.random.randn(n_out,n_out),
+            np.random.uniform(
+                size = (n_out, n_out),
+                low = -.01, high = .01)
         )
         self.bi = theano.shared(
-            np.random.randn(n_out)
+            #np.random.randn(n_out)
+            np.random.uniform(
+                size = (n_out,),
+                low = -.01, high = .01)
         )
 
         self.Wxf = theano.shared(
-            np.random.randn(n_in,n_out),
+            #np.random.randn(n_in,n_out),
+            np.random.uniform(
+                size = (n_in, n_out),
+                low = -.01, high = .01)
         )
         self.Whf = theano.shared(
-            np.random.randn(n_out,n_out),
+            #np.random.randn(n_out,n_out),
+            np.random.uniform(
+                size = (n_out, n_out),
+                low = -.01, high = .01)
         )
         self.bf = theano.shared(
-            np.random.randn(n_out)
+            #np.random.randn(n_out)
+            np.random.uniform(
+                size = (n_out,),
+                low = -.01, high = .01)
         )
 
         self.Wxo = theano.shared(
-            np.random.randn(n_in,n_out),
+            #np.random.randn(n_in,n_out),
+            np.random.uniform(
+                size = (n_in, n_out),
+                low = -.01, high = .01)
         )
         self.Who = theano.shared(
-            np.random.randn(n_out,n_out),
+            #np.random.randn(n_out,n_out),
+            np.random.uniform(
+                size = (n_out, n_out),
+                low = -.01, high = .01)
         )
         self.bo = theano.shared(
-            np.random.randn(n_out)
+            #np.random.randn(n_out)
+            np.random.uniform(
+                size = (n_out,),
+                low = -.01, high = .01)
         )
 
         self.Wo = theano.shared(
-            np.random.randn(n_out,n_out)
-        )
+            #np.random.randn(n_out,n_out)
+            np.random.uniform(
+                size = (n_out, n_out),
+                low = -.01, high = .01)
+            )
         self.bout = theano.shared(
-            np.random.randn(n_out)
-        )
+            #np.random.randn(n_out)
+            np.random.uniform(
+                size = (n_out,),
+                low = -.01, high = .01)
+            )
         self.h0 = theano.shared(np.zeros(n_out,))
         self.c0 = theano.shared(np.zeros(n_out,))
 
+        
         self.params = [ self.Wxb, self.Whb, self.bb,
                         self.Wxi, self.Whi, self.bi,
                         self.Wxf, self.Whf, self.bf,
-                        self.Wxo, self.Who, self.bo,
-                        self.Wo, self.bout]
-
-
+                        self.Wxo, self.Who, self.bo ]
+        
+        self.params_l2 = [  self.Wo, self.bout]
+        #self.params = [ self.Wxb, self.Whb, self.bb ] + self.params_l2
+        
     def step(self,x,htm1,ctm1):
         z = T.tanh(
             T.dot(x,self.Wxb) + T.dot(htm1,self.Whb) + self.bb
@@ -90,7 +134,7 @@ class LSTM():
 if not os.path.exists( 'pg1661.txt' ):
     os.system( 'wget -O pg1661.txt http://www.gutenberg.org/ebooks/1661.txt.utf-8' )
 
-dataset = open('pg1661.txt').read().lower()
+dataset = open('pg1661.txt').read().lower()[10000:20000]
 #dataset = ('ABCDEFGHIJKLMNOPQRSTUVWXYZ' + 'abcdefghijklmnopqrstuvwxyz' + ' !"#$%&\'()*+,-./0123456789:;<=>?@')*1000
 letters = list(set(dataset))
 size = len(letters)
@@ -101,14 +145,16 @@ lr = T.scalar()
 mom = T.scalar()
 
 params = []
-lstm1 = LSTM(size,2*size)
-lstm2 = LSTM(2*size,size)
+params2 = []
+lstm1 = LSTM(size,256)
+lstm2 = LSTM(256,size)
 
 layer1o = lstm1(X)
 layer2o = lstm2(layer1o)
 params += lstm1.params
 params += lstm2.params
-
+params += lstm1.params_l2
+params += lstm2.params_l2
 yout = T.nnet.softmax(layer2o)
 L2 = T.scalar()
 L2 = 0
@@ -144,9 +190,9 @@ for param in params:
 
 updates = {}
 for param, gparam in zip(params, gparams):
-    weight_update = updates_t[param]
-    upd = mom * weight_update - lr * gparam
-    updates[weight_update] = upd
+    #weight_update = updates_t[param]
+    upd =  - lr * gparam#+ mom * weight_update# - 0.01*param# + 
+    #updates[weight_update] = upd
     updates[param] = param + upd
 
     """
@@ -165,8 +211,8 @@ for param, gparam in zip(params, gparams):
     
 #gWxo = T.grad(oloss,Wxo)
 #fgradwxo = theano.function( [X,h0,c0,yt], gWxo )
-trainer = theano.function( [X,yt,lr,mom],
-                            [oloss],
+trainer = theano.function( [X,yt,lr],
+                            [cost],
                             updates=updates )
     
 
@@ -178,7 +224,7 @@ data = dataset
 h = np.zeros((len(letters),))
 c = np.zeros((len(letters),))
 
-lrx = 0.001
+lrx = 0.01
 mm = 0.9
 while True:
     for i in range(len(data)-20):
@@ -189,7 +235,7 @@ while True:
         for j,x in enumerate(xt):
             X[j][letters.index(x)] = 1
         yt = np.array([ letters.index(x) for x in data[i+1:i+21] ], dtype=np.int32)
-        loss = trainer(X,yt,lrx,0.99)
+        loss = trainer(X,yt,lrx)
         if loss[0] < 2.5:
             lrx = 0.0001
         #lrx = lrx - 0.000001
