@@ -1,3 +1,5 @@
+from pyvirtualdisplay import Display
+from selenium import webdriver
 from bs4 import BeautifulSoup
 import urllib
 import requests
@@ -27,7 +29,16 @@ def parse_episode_page(url):
     return 'http://watch-series-tv.to' + gorillavids[0]
 
 def get_gorillavid_page(url):
-    soup = create_parser(url)
+    display = Display(visible=0, size=(800, 600))
+    display.start()
+    path_to_chromedriver = './chromedriver'
+    browser = webdriver.Chrome(executable_path = path_to_chromedriver)
+    browser = webdriver.Chrome()
+    browser.get(url)
+    pgsource = browser.page_source
+    soup = BeautifulSoup(pgsource,'lxml')
+    browser.quit()
+    display.stop()
     return soup.findAll('a','push_button blue')[0]['href']
     
 def get_gorillavid_postp(url):
@@ -51,6 +62,12 @@ def get_gorillavid_video(url,ref):
     r = requests.post( url, data=payload )
     return (re.findall(video_reg,r.text)[0],payload['fname'])
 
+def check_chromedriver():
+    filepath = 'http://chromedriver.storage.googleapis.com/2.20/chromedriver_linux64.zip'
+    if not os.path.exists( 'chromedriver' ):
+        os.system( 'wget ' + filepath )
+        os.system( 'unzip *.zip' )
+
 if __name__ == '__main__':
     series_page = sys.argv[1]
     season = int(sys.argv[2]) - 1
@@ -62,9 +79,11 @@ if __name__ == '__main__':
     episodes.reverse()
     for episode in episodes[episodes_range[0]:episodes_range[1]]:
         episode_source = parse_episode_page(episode)
+        print episode_source
         gorilla_page = get_gorillavid_page(episode_source)
+        print gorilla_page
         video,fname = get_gorillavid_video(gorilla_page,episode_source)
-        print episode
+        print video
         #print gorilla_page
         #print get_gorillavid_video(gorilla_page,episode_source)
         urllib.urlretrieve( video, fname )
