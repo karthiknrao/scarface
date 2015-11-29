@@ -1,10 +1,9 @@
 from pyvirtualdisplay import Display
 from selenium import webdriver
 from bs4 import BeautifulSoup
-import urllib
-import requests
-import re
-import sys
+import urllib, requests
+import re, sys, os
+import wget
 
 def fetch(url):
     return urllib.urlopen(url).read()
@@ -69,21 +68,22 @@ def check_chromedriver():
         os.system( 'unzip *.zip' )
 
 if __name__ == '__main__':
+    check_chromedriver()
     series_page = sys.argv[1]
     season = int(sys.argv[2]) - 1
     episodes_range = (int(sys.argv[3].split('-')[0])-1,int(sys.argv[3].split('-')[1]))
     seasons = parse_seasons_page(series_page)
     seasons.reverse()
-    #'http://watch-series-tv.to/serie/modern_family')
     episodes = parse_seasons_listings(seasons[season])
     episodes.reverse()
     for episode in episodes[episodes_range[0]:episodes_range[1]]:
         episode_source = parse_episode_page(episode)
         print episode_source
         gorilla_page = get_gorillavid_page(episode_source)
-        print gorilla_page
+        print '\nGetting video url ...'
         video,fname = get_gorillavid_video(gorilla_page,episode_source)
-        print video
-        #print gorilla_page
-        #print get_gorillavid_video(gorilla_page,episode_source)
-        urllib.urlretrieve( video, fname )
+        if os.path.exists( fname ):
+            print '\nDownloaded ', fname
+            continue
+        print '\nDowloading ', fname
+        wget.download(video, out=fname)
