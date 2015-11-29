@@ -62,6 +62,7 @@ def get_gorillavid_video(url,ref):
     return (re.findall(video_reg,r.text)[0],payload['fname'])
 
 def check_chromedriver():
+    os.environ["PATH"] += os.pathsep + os.getcwd()
     filepath = 'http://chromedriver.storage.googleapis.com/2.20/chromedriver_linux64.zip'
     if not os.path.exists( 'chromedriver' ):
         os.system( 'wget ' + filepath )
@@ -78,7 +79,7 @@ if __name__ == '__main__':
     episodes.reverse()
     for episode in episodes[episodes_range[0]:episodes_range[1]]:
         episode_source = parse_episode_page(episode)
-        print episode_source
+        print '\n',episode
         gorilla_page = get_gorillavid_page(episode_source)
         print '\nGetting video url ...'
         video,fname = get_gorillavid_video(gorilla_page,episode_source)
