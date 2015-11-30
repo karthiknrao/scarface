@@ -5,6 +5,19 @@ import urllib, requests
 import re, sys, os
 import wget
 
+"""
+pip install these:
+beautifulsoup4
+pyvirtualdisplay
+selenium
+wget
+"""
+
+"""
+usage : 
+
+"""
+
 def fetch(url):
     return urllib.urlopen(url).read()
 
@@ -24,8 +37,9 @@ def parse_seasons_listings(url):
 
 def parse_episode_page(url):
     soup = create_parser(url)
-    gorillavids = [x['href'] for x in soup.findAll('a',{'title':'gorillavid.in'}) ]
-    return 'http://watch-series-tv.to' + gorillavids[0]
+    vids = [x['href'] for x in soup.findAll('a',{'title':'gorillavid.in'}) ] +\
+           [x['href'] for x in soup.findAll('a',{'title':'daclips.in'}) ]
+    return 'http://watch-series-tv.to' + vids[0]
 
 def get_gorillavid_page(url):
     display = Display(visible=0, size=(800, 600))
