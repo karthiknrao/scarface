@@ -26,12 +26,13 @@ shared_y = theano.shared(numpy.asarray(X_labels,
                          borrow=True)
 Yt = T.cast(shared_y, 'int32')
 
-netlayers = [ ConvLayer(1,4,5,5),
+netlayers = [ ConvLayer(1,8,5,5),
            PoolLayer(2,2),
-           ConvLayer(4,8,3,3),
+           ConvLayer(8,16,3,3),
            PoolLayer(2,2),
            FlattenLayer(),
-           FC(9*9*8,10)
+           FC(9*9*16,100),
+           FC(100,10) 
        ]
 
 params = []
@@ -51,7 +52,7 @@ cost = lossfunc(netout,ylabels)
 
 grads = T.grad(cost=cost,wrt=params)
 gray = T.grad(cost,params[0])
-updates = [ ( param,param - 0.001*grad ) for param, grad in\
+updates = [ ( param,param - 1.0*grad ) for param, grad in\
             zip(params,grads) ]
 
 train_model = theano.function(
@@ -77,5 +78,5 @@ grady = theano.function( [x,ylabels],gray )
 print params,grads
 print X_labels[0:10]
 print grady(X_train[0:2],X_labels[0:2])
-for i in range(500):
+for i in range(100):
     print i,train_model(i)

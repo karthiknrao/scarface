@@ -4,10 +4,13 @@ from theano.tensor.nnet.conv import conv2d
 from theano.tensor.signal import downsample
 import numpy as np
 
+def relu(x):
+    return theano.tensor.switch(x<0, 0, x)
+
 class CharEmbedding():
     def __init__(self,vecsize,vocabsize):
         valinit = np.zeros((vocabsize+1,vecsize))
-        valinit[1:,:] = np.random.random((vocabsize,vecsize))
+        valinit[1:,:] = np.random.randn(vocabsize,vecsize)
         self.W = theano.shared(
             valinit
             )
@@ -26,15 +29,15 @@ class ConvLayer():
     def __init__(self,insize,outsize,
                  filterx,filtery):
         self.W = theano.shared(
-            np.random.random((outsize,insize,filterx,filtery))
+            np.random.randn(outsize,insize,filterx,filtery)
             )
         self.b = theano.shared(
-            np.random.random((outsize,))
+            np.random.randn(outsize)
             )
         self.params = [ self.W, self.b ]
 
     def __call__(self, X):
-        act = T.tanh
+        act = T.nnet.sigmoid
         convout = conv2d(
             X,self.W,
             border_mode='full',
@@ -64,14 +67,14 @@ class FlattenLayer():
 class FC():
     def __init__(self,insize,outsize):
         self.W = theano.shared(
-            np.random.random((insize,outsize))
+            np.random.randn(insize,outsize)
             )
         self.b = theano.shared(
-            np.random.random((outsize,))
+            np.random.randn(outsize)
             )
         self.params = [ self.W, self.b ]
         
     def __call__(self,X):
-        #act = T.tanh
+        act = T.nnet.sigmoid
         out = T.dot(X,self.W) + self.b
-        return T.nnet.relu( out )
+        return act( out )
