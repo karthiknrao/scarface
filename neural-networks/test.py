@@ -13,8 +13,12 @@ f.close()
 #pdb.set_trace()
 X_train = train_set[0].reshape((train_set[0].shape[0],1,28,28))
 X_labels = numpy.array(train_set[1],dtype=numpy.int32)
+X_test = test_set[0].reshape((test_set[0].shape[0],1,28,28))
+X_test_labels = numpy.array(test_set[1],dtype=numpy.int32)
 
 x = T.tensor4()
+x_test = T.tensor4()
+y_test = T.ivector()
 ylabels = T.ivector()
 index = T.iscalar()
 
@@ -48,11 +52,15 @@ def lossfunc(ynet,ytrue):
     return -T.mean(T.log(ynet)[T.arange(ynet.shape[0]), ytrue])
     #return -T.mean(T.log(ynet)) + T.mean(ytrue)
 
-cost = lossfunc(netout,ylabels)
+def errors(ynet,ytrue):
+    preds = T.argmax(ynet,axis=1)
+    return T.mean(T.neq(preds,ytrue))
 
+cost = lossfunc(netout,ylabels)
+errfunc = errors(netout,y_test)
 grads = T.grad(cost=cost,wrt=params)
 gray = T.grad(cost,params[0])
-updates = [ ( param,param - 1.0*grad ) for param, grad in\
+updates = [ ( param,param - 0.5*grad ) for param, grad in\
             zip(params,grads) ]
 
 train_model = theano.function(
@@ -65,18 +73,17 @@ train_model = theano.function(
         }
     )
 
+test_model = theano.function(
+    [x,y_test],
+    errfunc
+    )
+
 yout = theano.function( [x], netout )
 grady = theano.function( [x,ylabels],gray )
-#cost = theano.function( [x,ylabels], loss )
-#xin = np.random.random((3,1,28,28))
-#yl = np.array( [ 2,4,5 ], dtype=np.int32 )
-#xout = yout( xin )
-#cc = cost( xin, yl )
-#print xout.shape
-#print cc
-#print X_train[0]
 print params,grads
 print X_labels[0:10]
 print grady(X_train[0:2],X_labels[0:2])
-for i in range(100):
-    print i,train_model(i)
+for j in range(30):
+    print test_model(X_test,X_test_labels)
+    for i in range(250):
+        print i,train_model(i)
