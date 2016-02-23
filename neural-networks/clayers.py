@@ -131,14 +131,26 @@ we can create model variation 1 in the paper
 Fig 3(a)
 """
 
-#testing
-x = T.tensor4()
-twocnn = TwoPathCNN(4)
-y = twocnn(x)
+"""
+TBD : Loss function, optimizer
+"""
 
-yout = theano.function( [x], y )
-xin = np.random.rand(1,4,50,50)
+# how to create network in fig 3(a)
 
-o = yout(xin)
-print o[0,:,0,0]
-#print o
+fullPatch = T.tensor4()
+centerPatch = T.tensor4()
+
+stage1 = TwoPathCNN(4)
+stage1out = stage1(fullPatch)
+stage2 = TwoPathCNN(9)
+stage2input = T.concatenate([stage1out,centerPatch],axis=1)
+stage2out = stage2(stage2input)
+
+network_output = theano.function([fullPatch,centerPatch],stage2out)
+
+fpatch = np.random.randn(1,4,65,65)
+cpatch = fpatch[:,:,16:16+33,16:16+33]
+
+output = network_output(fpatch,cpatch)
+print output.shape
+print output
