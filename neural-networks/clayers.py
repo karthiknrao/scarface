@@ -5,7 +5,7 @@ from theano.tensor.signal import downsample
 import numpy as np
 
 class TwoPathCNN():
-    def __init__(self):
+    def __init__(self,inpsize):
         # filter widths
         # p1 = path1, p2 = path2
         self.p1_k1_width = 7
@@ -15,7 +15,7 @@ class TwoPathCNN():
 
         # input and output channels
         self.maxout = 2
-        self.inp_chn = 4
+        self.inp_chn = inpsize
         self.p1_k1_ochn = 64
         self.p1_k2_ochn = 64
         self.p2_k1_ochn = 160
@@ -117,19 +117,28 @@ class TwoPathCNN():
             border_mode='valid',
         ) + self.bfinal.dimshuffle('x',0,'x','x')
 
-        # output size (5x1x1)
-        return full_conv_out
+        # softmax
+        shp = full_conv_out.shape
+        resized = T.transpose(full_conv_out.reshape((shp[1],shp[0]*shp[2]*shp[3])))
+        output = T.nnet.softmax(resized)
+        
+        return T.transpose(output).reshape(shp)
 
 
+"""
+by stacking two instances of this module
+we can create model variation 1 in the paper
+Fig 3(a)
+"""
 
 #testing
 x = T.tensor4()
-twocnn = TwoPathCNN()
+twocnn = TwoPathCNN(4)
 y = twocnn(x)
 
 yout = theano.function( [x], y )
-xin = np.random.rand(1,4,33,33)
+xin = np.random.rand(1,4,50,50)
 
 o = yout(xin)
-print o.shape
+print o[0,:,0,0]
 #print o
