@@ -137,6 +137,7 @@ TBD : Loss function, optimizer
 
 # how to create network in fig 3(a)
 
+"""
 fullPatch = T.tensor4()
 centerPatch = T.tensor4()
 
@@ -154,3 +155,4 @@ cpatch = fpatch[:,:,16:16+33,16:16+33]
 output = network_output(fpatch,cpatch)
 print output.shape
 print output
+"""
