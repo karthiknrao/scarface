@@ -3,6 +3,7 @@ import time
 import datetime
 import os
 import logging
+import random
 
 logging.basicConfig(filename="activity.log", level=logging.INFO)
 
@@ -77,6 +78,8 @@ def get_history(window,timewindow):
     ulogs = set(logs)
     if len(ulogs) > 4:
         return 3
+    else:
+        None
     
 def send_notification(notify,task,app):
     cmd = 'terminal-notifier -title ActivityMonitor -subtitle "URGENT" -message "%s" -appIcon http://www.arrayserver.com/wiki/images/c/cb/Warning.png'
@@ -89,7 +92,7 @@ def send_notification(notify,task,app):
         cmdf = cmd % mess
         os.system(cmdf)
     if notify == 3:
-        mess = 'Focus MF'
+        mess = 'Focus on ONE thing MF'
         cmdf =  cmd % mess
         os.system(cmdf)
 
@@ -113,5 +116,12 @@ if __name__ == '__main__':
             status = check_current_status(logs,(task[3],blacktask_list))
             if status != None:
                 send_notification(status[0],status[1],task[2])
+        """
+        if len(logs) > 1800:
+            logs = logs[-1800:]
+            historycheck = get_history(logs,1000)
+            if historycheck != None:
+                send_notification(historycheck,'','')
+        """
         time.sleep(1.0)
     
