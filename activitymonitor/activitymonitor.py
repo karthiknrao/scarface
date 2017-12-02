@@ -4,13 +4,18 @@ import datetime
 import os
 import logging
 import random
+import daemon
 
-logging.basicConfig(filename="activity.log", level=logging.INFO)
+logger = logging.getLogger()
+logger.setLevel(logging.DEBUG)
+fh = logging.FileHandler("/Users/karthik/src/activitymonitor/scarface/activitymonitor/activity.log")
+logger.addHandler(fh)
 
-cmd = [ 'osascript', 'printAppTitle.scpt' ]
+cmd = [ 'osascript', '/Users/karthik/src/activitymonitor/scarface/activitymonitor/printAppTitle.scpt' ]
 
-blacklistedtasksfile = 'black_list'
-tasklistfile = 'task_list'
+blacklistedtasksfile = '/Users/karthik/src/activitymonitor/scarface/activitymonitor/black_list'
+tasklistfile = '/Users/karthik/src/activitymonitor/scarface/activitymonitor/task_list'
+pid = "/Users/karthik/src/activitymonitor/scarface/activitymonitor/test.pid"
 
 def parse_taskfile(fname):
     lines = [ x.strip().split() for x in open(fname).readlines() ]
@@ -96,10 +101,28 @@ def send_notification(notify,task,app):
         cmdf =  cmd % mess
         os.system(cmdf)
 
-if __name__ == '__main__':
+
+def check_taskfile(tasktime,blacktime):
+    tasklistmp = int(os.path.getmtime(tasklistfile))
+    blacklistmp = int(os.path.getmtime(blacklistedtasksfile))
+    task = False
+    black = False
+    if tasklistmp > tasktime:
+        task = True
+    if blacklistmp > blacktime:
+        black = True
+    return task, black
+    
+    
+def main():
+    logging.basicConfig(filename="/Users/karthik/src/activitymonitor/scarface/activitymonitor/activity1.log", level=logging.INFO)
+    
     task_list = parse_taskfile(tasklistfile)
     blacktask_list = parse_blacklistfile(blacklistedtasksfile)
 
+    tasklistmp = int(os.path.getmtime(tasklistfile))
+    blacklistmp = int(os.path.getmtime(blacklistedtasksfile))
+    
     logs = []
     while True:
         now = int(time.time())
@@ -109,7 +132,7 @@ if __name__ == '__main__':
         outval = datetimestamp + '\t' + str(stdout_value)
         
         logs.append(outval)
-        logging.info(outval)
+        logger.debug(outval)
         
         task = get_current_task(task_list, now)
         if len(logs) > 10:
@@ -123,5 +146,17 @@ if __name__ == '__main__':
             if historycheck != None:
                 send_notification(historycheck,'','')
         """
+        taskreload, blackreload = check_taskfile(tasklistmp,blacklistmp)
+        if taskreload:
+            task_list = parse_taskfile(tasklistfile)
+            tasklistmp = int(os.path.getmtime(tasklistfile))
+        if blackreload:
+            blacktask_list = parse_blacklistfile(blacklistedtasksfile)
+            blacklistmp = int(os.path.getmtime(blacklistedtasksfile))
         time.sleep(1.0)
     
+
+if __name__ == '__main__':
+
+    with daemon.DaemonContext(files_preserve = [fh.stream,],) as context:
+        main()
