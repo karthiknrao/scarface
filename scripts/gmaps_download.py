@@ -4,6 +4,8 @@ import os
 import math
 import sys
 import cv2
+import numpy as np
+import random
 
 burl = 'http://mt0.google.com/vt/lyrs=s@110&hl=en&x=%d&s=&y=%d&z=%d&s='
 
@@ -30,27 +32,28 @@ def gettilexy(x,y,zoom,destdir):
     destpath = os.path.join(destdir,str(x))
     if not os.path.exists(destpath):
         os.mkdir(destpath)
-        fname = os.path.join(destpath,str(y)+'.jpg')
-        print(url,fname)
-        page = urllib.urlopen(url)
-        data = page.read()
-        with open(fname,'w') as outfile:
-            outfile.write(data)
+    fname = os.path.join(destpath,str(y)+'.jpg')
+    print(url,fname)
+    page = urllib.urlopen(url)
+    data = page.read()
+    with open(fname,'w') as outfile:
+        outfile.write(data)
     return fname
 
 def getwindowxy(x,y,zoom,destdir,width,outname):
     tiles = []
     for i in range( x - width, x + width + 1):
         for j in range( y - width, y + width + 1):
-            fname = gettilexy(i,j,zoon,destdir)
+            fname = gettilexy(i,j,zoom,destdir)
             tiles.append(fname)
+            time.sleep(2.0)
     winsize = (2*width + 1)*256
     buff = np.zeros((winsize,winsize,3))
     w = 2*width + 1
     for i in range(2*width+1):
         for j in range(2*width+1):
             img = cv2.imread(tiles[i*w + j])
-            buff[i*256:i*256+256,j*256:j*256+256] = img
+            buff[j*256:j*256+256,i*256:i*256+256] = img
     cv2.imwrite(outname,buff)
     
 if __name__ == '__main__':
@@ -73,7 +76,11 @@ if __name__ == '__main__':
         os.makedirs(destdir)
 
     outname = 'fullimage'
-    for i, lat, lon in enumerate(locs):
+    random.shuffle(locs)
+    locs = locs[:10]
+    for i, loc in enumerate(locs):
+        lat = loc[0]
+        lon = loc[1]
         x,y = xyfromlatlon(float(lat),float(lon),int(zoom))
         getwindowxy(x,y,zoom,destdir,1,os.path.join(outname,str(i)+'.jpg'))
         
