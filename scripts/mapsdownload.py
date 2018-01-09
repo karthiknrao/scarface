@@ -1,4 +1,4 @@
-import urllib
+import urllib2
 import time
 import os
 import math
@@ -9,8 +9,6 @@ from multiprocessing import Pool
 import quadkey
 import requests
 import sys
-reload(sys)
-sys.setdefaultencoding('utf8')
 
 bingurl = 'http://t%d.ssl.ak.tiles.virtualearth.net/tiles/a%s.jpeg?g=6201&n=z&c4w=1'
 googleurl = 'http://mt%d.google.com/vt/lyrs=s@110&hl=en&x=%d&s=&y=%d&z=%d&s='
@@ -63,11 +61,14 @@ def gettile(url,fname,destdir):
     if os.path.exists(fname):
         print('Done', url, fname)
         return fname
+    proxy = urllib2.ProxyHandler(proxies)
+    opener = urllib2.build_opener(proxy)
+    urllib2.install_opener(opener)
     try:
-        page = requests.get(url,proxies=proxies,timeout=3)
+        page = urllib2.urlopen(url,timeout=2)
     except:
         return fname
-    data = page.text
+    data = page.read()
     print(url,fname,len(data))
     if len(data) < 2000:
         return fname
@@ -138,12 +139,15 @@ def getregion(lat,lon,size,zoom,destdir,func):
             y = starty + j
             params.append((x,y,zoom,destdir,func))
 
-    pool = Pool(processes=8)
+    pool = Pool(processes=20)
     for i in range(10):
         print( 'Pass ', i )
         params = getnotdownloaded(params)
-        for batch in makebatch(params,100):
-            pool.map(getpooltile,batch)
+        for batch in makebatch(params,200):
+            try:
+                pool.map(getpooltile,batch)
+            except:
+                continue
 
 def getwindowxy(x,y,zoom,destdir,width,outname,func):
     tiles = []
@@ -166,7 +170,7 @@ if __name__ == '__main__':
     lat = 26.565417
     lon = 81.151605
     zoom = 18
-    getregion(lat,lon,100,zoom,'testgoogle18_2',getgooglemaps)
+    getregion(lat,lon,400,zoom,'testgoogle18_2',getgooglemaps)
     """
     locs = [ x.strip().split(',') for x in open(sys.argv[1]).readlines() ]
     zoom = 17
