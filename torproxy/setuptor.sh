@@ -7,7 +7,7 @@ if [ ! -d "data" ]; then
     mkdir "data"
 fi
 
-for i in {0..9}
+for i in {0..19}
 do
 
     j=$((i+1))
