@@ -6,7 +6,7 @@ import sys
 port = int(sys.argv[1])
 
 def reversessh(port):
-    cmd = [ "ssh", "-i", "annotation-server.pem", "-fN", "-R", "%d:localhost:22" %(port), "ubuntu@35.154.103.157" ]
+    cmd = [ "ssh", "-i", ".pem", "-fN", "-R", "%d:localhost:22" %(port), "ubuntu@" ]
     print(cmd)
     sshp = Popen( cmd, stdin=PIPE, stdout=PIPE )
     pid = sshp.pid
