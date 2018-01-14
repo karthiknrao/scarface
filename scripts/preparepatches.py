@@ -27,12 +27,12 @@ def latlonfromxy( x, y, zoom ):
 def getlatlon(fname):
     basename = os.path.basename(fname)
     basename = basename.replace('.jpg','')
-    lat , lon = [ float(x) for x in basename.split('_') ]
+    lat , lon = [ float(x) for x in basename.split('_')[1:] ]
     return lat, lon
 
 def getpatches(fname,outdir,t):
     lat, lon = getlatlon(fname)
-    x,y = xyfromlatlon( lat, lon, 18 )
+    x,y = xyfromlatlon( lat, lon, 17 )
     dx = int((x - int(x))*256)
     dy = int((y - int(y))*256)
     #print(x,y,lat,lon,dx,dy)
@@ -78,62 +78,43 @@ def getpatchesneg(fname,outdir,t):
         
 if __name__ == '__main__':
 
-    os.system( 'rm -r dataset18' )
-    
-    os.makedirs( 'dataset18/train/c2' )
-    os.makedirs( 'dataset18/val/c2' )
-    os.makedirs( 'dataset18/train/c1' )
-    os.makedirs( 'dataset18/val/c1' )
+    outdir = sys.argv[1]
+    srcdir = sys.argv[2]
+    os.system( 'rm -r ' + outdir )
+    trainc2 = os.path.join(outdir,'train/c2')
+    valc2 = os.path.join(outdir,'val/c2')
+    trainc1 = os.path.join(outdir,'train/c1')
+    valc1 = os.path.join(outdir,'val/c1')
+    os.makedirs( trainc2  )
+    os.makedirs( valc2 )
+    os.makedirs( trainc1 )
+    os.makedirs( valc1 )
 
     ## 1 brickkiln
     ## 0 random patches
     
     #### bing maps #####
-    files = glob.glob( 'bingdata/1/*' )
+    files = glob.glob( os.path.join(srcdir,'1/*') )
     random.shuffle(files)
     ll = len(files)
     print(ll)
     train = files[:int(0.8*ll)]
     test = files[int(0.8*ll):]
     for fname in train:
-        getpatches(fname,'dataset18/train/c2','bing')
+        getpatches(fname,trainc2,'')
 
     for fname in test:
-        getpatches(fname,'dataset18/val/c2','bing')
+        getpatches(fname,valc2,'')
         
-    files = glob.glob( 'bingdata/0/*' )
+    files = glob.glob( os.path.join(srcdir,'0/*') )
     random.shuffle(files)
     ll = len(files)
     print(ll)
     train = files[:int(0.8*ll)]
     test = files[int(0.8*ll):]
     for fname in train:
-        getpatchesneg(fname,'dataset18/train/c1','bing')
+        getpatchesneg(fname,trainc1,'')
 
     for fname in test:
-        getpatchesneg(fname,'dataset18/val/c1','bing')
-    
-    #### google maps ####
-    files = glob.glob( 'data18/1/*' )
-    random.shuffle(files)
-    ll = len(files)
-    print(ll)
-    train = files[:int(0.8*ll)]
-    test = files[int(0.8*ll):]
-    for fname in train:
-        getpatches(fname,'dataset18/train/c2','')
+        getpatchesneg(fname,valc1,'')
 
-    for fname in test:
-        getpatches(fname,'dataset18/val/c2','')
-        
-    files = glob.glob( 'data18/0/*' )
-    random.shuffle(files)
-    ll = len(files)
-    print(ll)
-    train = files[:int(0.8*ll)]
-    test = files[int(0.8*ll):]
-    for fname in train:
-        getpatchesneg(fname,'dataset18/train/c1','')
-
-    for fname in test:
-        getpatchesneg(fname,'dataset18/val/c1','')
