@@ -7,6 +7,7 @@ import time
 
 urlyear = 'http://sentinel-s2-l1c.s3.amazonaws.com/?delimiter=/&prefix=tiles/%d/%s/%s/%d/'
 urlmonth = 'http://sentinel-s2-l1c.s3.amazonaws.com/?delimiter=/&prefix=tiles/%d/%s/%s/%d/%d/'
+urlday = 'tiles/%d/%s/%s/%d/%d/%d/'
 urlbase = 'http://sentinel-s2-l1c.s3.amazonaws.com/?delimiter=/&prefix='
 urlimage = 'http://sentinel-s2-l1c.s3.amazonaws.com/tiles/43/P/GQ/2018/1/14/0/B04.jp2'
 urlimagebase = 'http://sentinel-s2-l1c.s3.amazonaws.com/'
@@ -45,6 +46,8 @@ if __name__ == '__main__':
     p.add_argument( '-c', action='store', dest='c', help='tile' )
     p.add_argument( '-m', action='store', dest='m', help='month', type=int )
     p.add_argument( '-l' , action='store', dest='l', help='list', type=int )
+    p.add_argument( '-d' , action='store', dest='d', help='day', type=int )
+    
     outdir = 'images'
     
     args = p.parse_args()
@@ -64,7 +67,10 @@ if __name__ == '__main__':
             murl = urlbase + month
             urls += parse(fetch(murl))
     else:
-        urls = parse(fetch(url))
+        if args.d == None:
+            urls = parse(fetch(url))
+        else:
+            urls = [ urlday % ( args.utm, args.lc, args.c, args.year, args.m, args.d ) ]
         
     passurls = []
     for url in urls:
